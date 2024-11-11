@@ -4,6 +4,8 @@ import yfinance as yf
 import pandas as pd
 import sys
 import sqlite3
+from datetime import datetime, timedelta
+import threading
 
 from Modules import secretkeys
 
@@ -11,73 +13,101 @@ client = schwabdev.Client(secretkeys.get_app_key(), secretkeys.get_secret())
 
 
 def main():
-    print("hello world")
 
-    # Connect to SQLite database (or create it if it doesn't exist)
-    conn = sqlite3.connect('filtered_symbols.db')
-    cursor = conn.cursor()
-
-    # Create a table for storing the filtered symbols
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS symbols (
-            ticker TEXT PRIMARY KEY,
-            market_cap REAL,
-            average_volume INTEGER,
-            open_interest REAL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    conn.commit()
-
-    #figure out an interval to run this code on
-
-    # Get major indices tickers and filter them
-    # symbols = get_symbols()
-    # filtered_symbols = filter_symbols_by_parameters(symbols)
-
-    # # Insert filtered symbols into the database
-    # for symbol, data in filtered_symbols.items():
-    #     cursor.execute('''
-    #         INSERT OR REPLACE INTO symbols (ticker, market_cap, average_volume)
-    #         VALUES (?, ?, ?)
-    #     ''', (symbol, data['Market Cap'], data['Average Volume']))
-    
-    # conn.commit()
-    # conn.close()
-
-
-    #get each symbol from the database
-    cursor.execute('SELECT ticker FROM symbols')
-    symbols = [row[0] for row in cursor.fetchall()]
-
-    alerts = []
-
-    # Loop through each symbol and get the option chain data
+    #load filtered symbols into the database
+    symbols = get_symbols()
     for symbol in symbols:
-        print(symbol)
-        #get the average volume for the symbol from the database
-        cursor.execute('SELECT average_volume FROM symbols WHERE ticker = ?', (symbol,))
-        average_volume = cursor.fetchone()[0]
-        option_chain_data = get_option_chain_data(client, symbol)
-        #get the callexpDataMap
-        callexpDataMap = option_chain_data['callExpDateMap']
-        #get each day within the callexpDataMap
-        i = 0
-        for day in callexpDataMap:
-            #get each option within the day
-            expData = callexpDataMap[day]
-            for option in expData:
-                #print the option data
-                strikeData = expData[option]
-                zeroData = strikeData[0]
-                openInterest = zeroData['openInterest']
-                print(openInterest)
-                #check if openInterest is greater than the value in the openInterest column
-                if openInterest > average_volume:
-                    print(f"Symbol: {symbol}, Open Interest: {openInterest}, Average Volume: {average_volume}")
-                    alerts.append(f"Symbol: {symbol}, Open Interest: {openInterest}, Average Volume: {average_volume}, Date:{day}, option: {option}")
+        #get the volume another way, need to be specific to each contract
+        market_cap, avg_volume = filter_symbols_by_parameters(symbol)
+        if market_cap and avg_volume:
+            #pull data from schwabdev
+            orders = get_option_chain_data(client, symbol)
+            #get the date of the option
+            for date in orders['callExpDateMap'].values():
+                #get the options of that date
+                for option in date.values():
+                    values = option[0]
+                    put_call = values['putCall']
+                    open_interest = values['openInterest']
+                    strike_price = values['strikePrice']
 
-                    
+                    expiration_date = values['expirationDate']
+                    expiration_date = convert_expiration_date(expiration_date)
+
+                    avg_contract_volume = get_daily_average_volume(symbol, expiration_date, strike_price, put_call)
+
+                    if open_interest > avg_contract_volume:
+                        data = f"Symbol: {symbol}, Open Interest: {open_interest}, Strike Price: {strike_price}, Expiration Date: {expiration_date}"
+                        send_webhook(data)
+                    else:
+                        print(f"symbol: {symbol}, open interest: {open_interest}, strike price: {strike_price}, expiration date: {expiration_date} volume too low: {avg_contract_volume}")
+                        #send to webhook
+
+
+def convert_expiration_date(expiration_date):
+    """
+    Convert expiration date from '2024-11-15T21:00:00.000+00:00' format to 'YYYY-MM-DD'.
+    
+    Parameters:
+    expiration_date (str): The expiration date string in ISO 8601 format.
+
+    Returns:
+    str: The expiration date in 'YYYY-MM-DD' format.
+    """
+    dt = datetime.fromisoformat(expiration_date.replace('Z', '+00:00'))
+    return dt.strftime('%Y-%m-%d')
+
+def get_daily_average_volume(symbol, expiration_date, strike_price, option_type='CALL', days=30):
+    """
+    Retrieve the daily average trading volume for a specific option contract over the past 'days'.
+
+    Parameters:
+    symbol (str): The stock ticker symbol (e.g., 'AAPL').
+    expiration_date (str): The expiration date of the option in ISO 8601 format.
+    strike_price (float): The strike price of the option.
+    option_type (str): The type of option, either 'CALL' or 'PUT'. Default is 'CALL'.
+    days (int): The number of days to calculate the average volume. Default is 30.
+
+    Returns:
+    float or str: The daily average trading volume of the specified contract or a message if not found.
+    """
+    # Convert the expiration date to 'YYYY-MM-DD' format
+    formatted_expiration_date = convert_expiration_date(expiration_date)
+
+    ticker = yf.Ticker(symbol)
+    if formatted_expiration_date not in ticker.options:
+        return f"Expiration date {formatted_expiration_date} not found for {symbol}."
+
+    option_chain = ticker.option_chain(formatted_expiration_date)
+    
+    if option_type == 'CALL':
+        options = option_chain.calls
+    elif option_type == 'PUT':
+        options = option_chain.puts
+    else:
+        return "Invalid option type. Use 'CALL' or 'PUT'."
+
+    specific_option = options[options['strike'] == strike_price]
+
+    if not specific_option.empty:
+        historical_data = specific_option['volume'].iloc[0]
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Pull historical option volume data if available (adjust as needed for API/library capabilities)
+        # For example, you might need to use an external data source for this part.
+        
+        # Example placeholder for calculating average:
+        average_volume = historical_data.mean()
+        
+        return average_volume
+    else:
+        return "Specific contract not found."
+
+
+def send_webhook(data):
+    print(f"sent webhook: {data}")
+
     
 def current_symbol(symbol, percentage, extra=None):
     progress_str = f"\rProgress: {percentage:.2f}% - working on {symbol}"
@@ -109,35 +139,26 @@ def get_symbols():
 
     return symbols
     
-def filter_symbols_by_parameters(symbols):
-    filtered_symbols = {}
-    length = len(symbols)
-    i = 0
+def filter_symbols_by_parameters(ticker, min_market_cap=1e9, min_avg_volume=200000):
+    
+    try:
 
-    for ticker in symbols:
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
-            i += 1
+        stock = yf.Ticker(ticker)
+        info = stock.info
 
-            # Extract market cap and average daily volume
-            market_cap = info.get('marketCap', 0)
-            avg_volume = info.get('averageVolume', 0)
+        # Extract market cap and average daily volume
+        market_cap = info.get('marketCap', 0)
+        avg_volume = info.get('averageVolume', 0)
 
-            # Check if market cap is over $1 billion and average volume over 200k
-            if market_cap > 1e9 and avg_volume > 200000:
-                filtered_symbols[ticker] = {
-                    'Market Cap': market_cap,
-                    'Average Volume': avg_volume
-                }
-                PercentComplete((i / length) * 100, ticker)
-            else:
-                PercentComplete((i / length) * 100)
-        
-        except Exception as e:
-            print(f"\nError processing {ticker}: {e}")
+        # Check if market cap is over $1 billion and average volume over 200k
+        if market_cap > min_market_cap and avg_volume > min_avg_volume:
+            return market_cap, avg_volume
+        else:
+            return None, None
+    
+    except Exception as e:
+        print(f"\nError processing {ticker}: {e}")
 
-    return filtered_symbols
 
 def get_option_chain_data(client, symbol):
     response = client.option_chains(symbol)
@@ -147,5 +168,8 @@ def get_option_chain_data(client, symbol):
         return orders
     else:
         return None
+
+
+
 
 main()

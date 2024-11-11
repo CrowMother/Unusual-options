@@ -1,2 +1,4 @@
 .env
 tokens.json
+filtered_symbols.db
+data.db
