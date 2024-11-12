@@ -2,16 +2,11 @@ import yfinance as yf
 import pandas as pd
 from Modules import universal
 from Modules import secretkeys
+from yahoo_fin import stock_info as si
 
 
+#modify in the future to get passed indexes
 def get_symbols():
-    """
-    Returns a dictionary of stock symbols, with the key being the ticker and
-    the value being the ticker. The dictionary is sorted alphabetically.
-
-    Returns:
-        dict: A dictionary of stock symbols
-    """
     dow_tickers = si.tickers_dow()
     nasdaq_tickers = si.tickers_nasdaq()
 
@@ -23,8 +18,8 @@ def get_symbols():
 
     return symbols
     
-def filter_symbols_by_parameters(symbols):
-    filtered_symbols = {}
+def filter_symbols_by_parameters(symbols, min_market_cap=1e9, min_avg_volume=200000):
+    filtered_symbols = []
     length = len(symbols)
     i = 0
 
@@ -39,25 +34,12 @@ def filter_symbols_by_parameters(symbols):
             avg_volume = info.get('averageVolume', 0)
 
             # Check if market cap is over $1 billion and average volume over 200k
-            if market_cap > 1e9 and avg_volume > 200000:
-                filtered_symbols[ticker] = {
-                    'Market Cap': market_cap,
-                    'Average Volume': avg_volume
-                }
-                PercentComplete((i / length) * 100, ticker)
-            else:
-                PercentComplete((i / length) * 100)
+            if market_cap > min_market_cap and avg_volume > min_avg_volume:
+                filtered_symbols.append(ticker)
+                print(f"Added {ticker} to filtered_symbols ({i}/{length})")
         
         except Exception as e:
             print(f"\nError processing {ticker}: {e}")
 
     return filtered_symbols
 
-def get_option_chain_data(client, symbol):
-    response = client.option_chains(symbol)
-    if response.status_code == 200:
-        # Parse the JSON content
-        orders = response.json()
-        return orders
-    else:
-        return None
