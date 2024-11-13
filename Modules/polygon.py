@@ -5,6 +5,9 @@ import requests
 
 
 def print_trades(option_ticker, size_threshold = 100, size_threshold_min = 50):
+
+
+    timeoutValue = 15
     # Replace with your Polygon.io API key
     if size_threshold < size_threshold_min:
         return
@@ -41,8 +44,10 @@ def print_trades(option_ticker, size_threshold = 100, size_threshold_min = 50):
             else:
                 print("No trades exceeded the size threshold.")
     elif response.status_code == 443:
+        timeoutValue += timeoutValue
         print("Rate limit exceeded: Waiting for 15 seconds.")
-        time.sleep(15)
+        time.sleep(timeoutValue)
+        return print_trades(option_ticker, size_threshold, size_threshold_min)
     elif response.status_code == 403:
         print("Access denied: Your API key does not have the required permissions to access this data.")
     elif response.status_code == 401:
