@@ -1,15 +1,14 @@
 from Modules import secretkeys
 from Modules import universal
+import time
 import requests
 
 
-def print_trades():
+def print_trades(option_ticker, size_threshold = 100, size_threshold_min = 50):
     # Replace with your Polygon.io API key
-
+    if size_threshold < size_threshold_min:
+        return
     api_key = secretkeys.load_secret("API_KEY")
-
-    # Option ticker symbol (e.g., 'O:SPY241115C00450000')
-    option_ticker = 'O:SPY241115C00450000'
 
     # API endpoint
     url = f'https://api.polygon.io/v3/trades/{option_ticker}'
@@ -32,17 +31,18 @@ def print_trades():
         if not trades:
             print("No trades found for the specified option.")
         else:
-            # Define your size threshold
-            size_threshold = 100  # Replace with your desired threshold
+            # Define your size threshold (number of contracts in a trade)
 
             # Filter trades by size
             large_trades = [trade for trade in trades if trade['size'] > size_threshold]
 
             if large_trades:
-                for trade in large_trades:
-                    print(trade)
+                return large_trades
             else:
                 print("No trades exceeded the size threshold.")
+    elif response.status_code == 443:
+        print("Rate limit exceeded: Waiting for 15 seconds.")
+        time.sleep(15)
     elif response.status_code == 403:
         print("Access denied: Your API key does not have the required permissions to access this data.")
     elif response.status_code == 401:
