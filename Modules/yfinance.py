@@ -25,6 +25,7 @@ def filter_symbols_by_parameters(symbols, min_market_cap=1e9, min_avg_volume=200
 
     for ticker in symbols:
         try:
+            ycon = universal.connection_retry()
             stock = yf.Ticker(ticker)
             info = stock.info
             i += 1
@@ -37,9 +38,11 @@ def filter_symbols_by_parameters(symbols, min_market_cap=1e9, min_avg_volume=200
             if market_cap > min_market_cap and avg_volume > min_avg_volume:
                 filtered_symbols.append(ticker)
                 print(f"Added {ticker} to filtered_symbols ({i}/{length})")
-        
+
         except Exception as e:
-            print(f"\nError processing {ticker}: {e}")
+            print(f"\nError processing {ticker}: {e}. Retrying after a pause of {ycon.sleep_time} seconds...")
+            ycon.retry()
+            continue  # Retry the same ticker
 
     return filtered_symbols
 

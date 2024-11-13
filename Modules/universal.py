@@ -1,4 +1,5 @@
 import datetime
+import time
 
 #red error codes
 def error_code(text):
@@ -44,3 +45,18 @@ def split_string_at_char(inputString, splitChar, SectionNum):
 def write_to_file(data, fileName="data.txt"):
     with open(fileName, 'w') as f:
         f.write(str(data))
+
+
+class connection_retry():
+    def __init__(self):
+        self.sleep_time = 15
+
+
+    def retry(self):
+        self.sleep_time += self.sleep_time
+        time.sleep(self.sleep_time)
+
+    def reset(self):
+        self.sleep_time = 15
+        
+    

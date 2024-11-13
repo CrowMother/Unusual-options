@@ -13,8 +13,14 @@ def print_trades(option_ticker, size_threshold = 100, size_threshold_min = 50):
         return
     api_key = secretkeys.load_secret("API_KEY")
 
+    #todays date in the format of YYYY-MM-DD
+    today = time.strftime('%Y-%m-%d')
+
+    #number of trades to look for
+    num_trades = 50000
+
     # API endpoint
-    url = f'https://api.polygon.io/v3/trades/{option_ticker}'
+    url = f'https://api.polygon.io/v3/trades/{option_ticker}?timestamp={today}&order=desc&limit={num_trades}&sort=timestamp'
 
     # Headers for authorization
     headers = {

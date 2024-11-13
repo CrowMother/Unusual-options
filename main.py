@@ -2,6 +2,7 @@ from Modules import polygon
 from Modules import yfinance
 from Modules import sqlStuff
 from Modules import schwab
+from Modules import webhook
 import time
 
 
@@ -44,8 +45,11 @@ def main():
                 large_trades = polygon.print_trades(symbol, openInterest)
 
                 if large_trades:
-                    large_trades_total += large_trades
-                    print(f"Large trades for {symbol}: {large_trades}")
+                    for large_trade in large_trades:
+                        large_trade['symbol'] = symbol
+                        webhook.webhookout(large_trade)
+                        db.set_sent(id)
+
             except Exception as e:
                 print(f"Error with {symbol}: {e}")
                 print(large_trades_total)
@@ -53,11 +57,6 @@ def main():
         if large_trades_total:
             print("Large trades found for the following tickers:")
             print(large_trades_total)
-        
-        #wait for 1 hour
-        print("sleeping for 1 hour")
-        time.sleep(3600)
-
 
 
 

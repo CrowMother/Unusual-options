@@ -51,7 +51,8 @@ class sqlControl():
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         time_diff = datetime.strptime(current_time, '%Y-%m-%d %H:%M:%S') - datetime.strptime(last_pull_time, '%Y-%m-%d %H:%M:%S')
-        if time_diff > timedelta(hours=24):
+        if time_diff > timedelta(hours=1):
+            print("Database is over 12 hours old!!!!!!!")
             self.cursor.execute("DROP TABLE stocks")
         
 
@@ -76,3 +77,7 @@ class sqlControl():
         #get the data from the database
         self.cursor.execute(f"SELECT {column} FROM stocks WHERE id = ?", (id,))
         return self.cursor.fetchone()[0]
+    
+    def set_sent(self, id):
+        self.cursor.execute("UPDATE stocks SET isSent = 1 WHERE id = ?", (id,))
+        self.conn.commit()
