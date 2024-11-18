@@ -49,15 +49,28 @@ def write_to_file(data, fileName="data.txt"):
 
 class connection_retry():
     def __init__(self):
-        self.sleep_time = 15
+        self.sleep_time = 5
+        self.attempts = 0
+        self.Maxattempts = 3
 
 
     def retry(self):
         self.sleep_time += self.sleep_time
-        time.sleep(self.sleep_time)
+        self.attempts += 1
+        if self.attempts > self.Maxattempts:
+            self.reset()
+            return self.breakLoop()
 
+        time.sleep(self.sleep_time)
+        return True
+
+
+    def breakLoop(self):
+        self.reset()
+        return False
     def reset(self):
-        self.sleep_time = 15
+        self.sleep_time = 5
+        self.attempts = 0
         
     def get_sleep_time(self):
         return self.sleep_time

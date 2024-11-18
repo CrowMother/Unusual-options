@@ -2,12 +2,21 @@ import sqlite3
 from datetime import datetime, timedelta
 
 
-class sqlControl():
+
+class sqlControlMainTable():
     def __init__(self, dbFile="unusualOptions.db"):
         #create or connect to database
         self.tableCreated = False
         self.conn = sqlite3.connect(dbFile)
         self.cursor = self.conn.cursor()
+
+        #check if the table has values in it
+        self.cursor.execute("SELECT * FROM stocks LIMIT 1")
+        if self.cursor.fetchone() is None:
+            print("Table is empty")
+            self.cursor.execute("DROP TABLE stocks")
+        else:
+            print("Table has values in it")
 
         #check if the table is over 24 hours old
         self.check_database_age()
@@ -33,28 +42,52 @@ class sqlControl():
             self.tableCreated = True
         else:
             print("Table found in database")
+
+        # Check if the `unique_stocks` table exists; if not, create it
+        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='unique_stocks'")
+        if self.cursor.fetchone() is None:
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS unique_stocks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    symbol TEXT UNIQUE NOT NULL
+                )
+            ''')
+            self.conn.commit()
+            print("Created the unique_stocks table.")
+        else:
+            print("Unique stocks table found in database.")
             
 
        
 
     def check_database_age(self):
-        #check if the table exists 
+    # Check if the `stocks` table exists
         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='stocks'")
         if self.cursor.fetchone() is None:
             return
+        
+        # Get the most recent `timeCreated` value from the `stocks` table
         self.cursor.execute("SELECT timeCreated FROM stocks ORDER BY timeCreated DESC LIMIT 1")
         result = self.cursor.fetchone()
+        
         if result is None:
             # Handle the case where no rows are found
             print("No rows found in the stocks table")
             return
-        last_pull_time = result[0]
-        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-        time_diff = datetime.strptime(current_time, '%Y-%m-%d %H:%M:%S') - datetime.strptime(last_pull_time, '%Y-%m-%d %H:%M:%S')
-        if time_diff > timedelta(hours=1):
+        
+        last_pull_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S')
+        current_time = datetime.now()
+        
+        time_diff = current_time - last_pull_time
+        print("Time difference:", time_diff)
+        self.cursor.execute("DROP TABLE stocks")
+        self.conn.commit()
+        # Check if the time difference exceeds 12 hours (or 5 minutes for testing)
+        if time_diff > timedelta(hours=12):  # Use `minutes=5` if testing shorter timeframes
             print("Database is over 12 hours old!!!!!!!")
+            # Delete the stocks table
             self.cursor.execute("DROP TABLE stocks")
+            self.conn.commit()
         
 
 
@@ -82,3 +115,23 @@ class sqlControl():
     def set_sent(self, id):
         self.cursor.execute("UPDATE stocks SET isSent = 1 WHERE id = ?", (id,))
         self.conn.commit()
+
+
+    def add_unique_stock(self, symbol):
+        try:
+            self.cursor.execute("INSERT OR IGNORE INTO unique_stocks (symbol) VALUES (?)", (symbol,))
+            self.conn.commit()
+        except sqlite3.IntegrityError as e:
+            print(f"Failed to insert {symbol}: {e}")
+
+    def get_all_unique_stocks(self):
+        self.cursor.execute("SELECT symbol FROM unique_stocks")
+        return [row[0] for row in self.cursor.fetchall()]        
+    
+    def get_unique_stock(self, symbol):
+        self.cursor.execute("SELECT symbol FROM unique_stocks WHERE symbol = ?", (symbol,))
+        return self.cursor.fetchone()
+    
+    def get_last_unique_stock(self):
+        self.cursor.execute("SELECT symbol FROM unique_stocks ORDER BY symbol DESC LIMIT 1")
+        return self.cursor.fetchone()

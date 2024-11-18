@@ -15,7 +15,8 @@ def main():
     indexes = secretkeys.load_secret("INDEXES")
     extra_stocks = secretkeys.load_secret("EXTRA_STOCKS")
     #create sql database and connection to it
-    db = sqlStuff.sqlControl()
+    db = sqlStuff.sqlControlMainTable()
+
     timeOutSystem = universal.connection_retry()
     #get the list of tickers at beginning of day
     tickers = None
@@ -33,13 +34,20 @@ def main():
         tickers = yfinance.get_symbols_from_index(indexes, extra_stocks)
 
         #filter the tickers
-        tickers = yfinance.filter_symbols_by_parameters(tickers)
-        
+        #tickers = yfinance.filter_symbols_by_parameters(tickers, db)
+
+
+        tickers = db.get_all_unique_stocks()
         #get the option chain data for each ticker and add it to the database
         for ticker in tickers:
-            option_chain_data = schwab.get_option_chain_data(ticker)
-            
-            option_date = schwab.pullStore_data(option_chain_data, db)
+            try:
+                option_chain_data = schwab.get_option_chain_data(ticker)
+                
+                option_date = schwab.pullStore_data(option_chain_data, db)
+
+            except Exception as e:
+                print(f"Failed to get option chain data for {ticker}: {e}")
+                continue
 
     #create a loop that runs the check for new data
     while True:
