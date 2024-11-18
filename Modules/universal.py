@@ -59,4 +59,6 @@ class connection_retry():
     def reset(self):
         self.sleep_time = 15
         
+    def get_sleep_time(self):
+        return self.sleep_time
     

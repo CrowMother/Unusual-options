@@ -6,26 +6,33 @@ from yahoo_fin import stock_info as si
 
 
 #modify in the future to get passed indexes
-def get_symbols():
-    dow_tickers = si.tickers_dow()
-    nasdaq_tickers = si.tickers_nasdaq()
+def get_symbols_from_index(indexes, extra_stocks = None):
+    if indexes != None:
+        all_tickers = []
+        for index in indexes:
+            tickers = si.tickers_on_index(index)
+            all_tickers = all_tickers + tickers
+        #get rid of repeats by making symbols a dictionary
+        
+        symbols = {ticker: ticker for ticker in all_tickers}
+        
+        if extra_stocks != None:
+            for stock in extra_stocks:
+                symbols[stock] = stock
+        #make it aphabetical
+        symbols = dict(sorted(symbols.items()))
+        
 
-    #get rid of repeats by making symbols a dictionary
-    all_tickers = set( dow_tickers + nasdaq_tickers)
-    symbols = {ticker: ticker for ticker in all_tickers}
-    #make it aphabetical
-    symbols = dict(sorted(symbols.items()))
 
-    return symbols
+        return symbols
     
-def filter_symbols_by_parameters(symbols, min_market_cap=1e9, min_avg_volume=200000):
+def filter_symbols_by_parameters(symbols, min_market_cap=1e9, min_avg_volume=200000, ycon = universal.connection_retry()):
     filtered_symbols = []
     length = len(symbols)
     i = 0
 
     for ticker in symbols:
         try:
-            ycon = universal.connection_retry()
             stock = yf.Ticker(ticker)
             info = stock.info
             i += 1
@@ -38,11 +45,12 @@ def filter_symbols_by_parameters(symbols, min_market_cap=1e9, min_avg_volume=200
             if market_cap > min_market_cap and avg_volume > min_avg_volume:
                 filtered_symbols.append(ticker)
                 print(f"Added {ticker} to filtered_symbols ({i}/{length})")
+                ycon.reset()
 
         except Exception as e:
-            print(f"\nError processing {ticker}: {e}. Retrying after a pause of {ycon.sleep_time} seconds...")
+            print(f"\nError processing {ticker}: {e}. Retrying after a pause of {ycon.get_sleep_time()} seconds...")
             ycon.retry()
-            continue  # Retry the same ticker
+            return filter_symbols_by_parameters(ticker, min_market_cap, min_avg_volume, ycon)
 
     return filtered_symbols
 

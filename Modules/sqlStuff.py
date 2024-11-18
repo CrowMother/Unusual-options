@@ -22,6 +22,7 @@ class sqlControl():
                     symbol TEXT NOT NULL,
                     expirationDate TEXT NOT NULL,
                     strike TEXT NOT NULL,
+                    callPut TEXT NOT NULL,
                     openInterst INT NOT NULL,
                     lastPullTime DATE NOT NULL,
                     timeCreated DATE DEFAULT CURRENT_TIMESTAMP,
@@ -57,8 +58,8 @@ class sqlControl():
         
 
 
-    def add_stock(self, symbol, expirationDate, strike, openInterest, lastPullTime):
-        self.cursor.execute("INSERT INTO stocks (symbol, expirationDate, strike, openInterst, lastPullTime) VALUES (?, ?, ?, ?, ?)", (symbol, expirationDate, strike, openInterest, lastPullTime))
+    def add_stock(self, symbol, expirationDate, strike, callPut, openInterest, lastPullTime):
+        self.cursor.execute("INSERT INTO stocks (symbol, expirationDate, strike, callPut,openInterst, lastPullTime) VALUES (?, ?, ?, ?, ?, ?)", (symbol, expirationDate, strike, callPut, openInterest, lastPullTime))
         self.conn.commit()
 
 

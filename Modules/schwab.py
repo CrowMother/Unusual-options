@@ -18,11 +18,12 @@ def get_option_chain_data(symbol):
     
 
 
-def pull_data(option_chain_data, db):
+def pullStore_data(option_chain_data, db):
     # Get the date and time for the current day
     callExpiration = option_chain_data['callExpDateMap']
     putExpiration = option_chain_data['putExpDateMap']
     pull_sub_data(callExpiration,db)
+    pull_sub_data(putExpiration,db)
 
 
 
@@ -41,8 +42,11 @@ def pull_sub_data(expirations, db) :
             callPut = subData['putCall']
             symbol = subData['symbol']
 
+            #if the open interest is 0 then dont add it to the database
+            if openInterest == 0:
+                continue
             #add the data to the database
-            db.add_stock(symbol, expirationDate, strike_price, openInterest, lastPullTime)
+            db.add_stock(symbol, expirationDate, strike_price, callPut, openInterest, lastPullTime)
 
 
 

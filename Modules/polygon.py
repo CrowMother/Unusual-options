@@ -3,13 +3,11 @@ from Modules import universal
 import time
 import requests
 
+def get_large_trades(option_ticker, openInterest, timeOutSystem, size_threshold_min = 50):
 
-def print_trades(option_ticker, size_threshold = 100, size_threshold_min = 50):
 
-
-    timeoutValue = 15
     # Replace with your Polygon.io API key
-    if size_threshold < size_threshold_min:
+    if openInterest < size_threshold_min:
         return
     api_key = secretkeys.load_secret("API_KEY")
 
@@ -43,17 +41,16 @@ def print_trades(option_ticker, size_threshold = 100, size_threshold_min = 50):
             # Define your size threshold (number of contracts in a trade)
 
             # Filter trades by size
-            large_trades = [trade for trade in trades if trade['size'] > size_threshold]
+            large_trades = [trade for trade in trades if trade['size'] > openInterest]
 
             if large_trades:
                 return large_trades
             else:
                 print("No trades exceeded the size threshold.")
     elif response.status_code == 443:
-        timeoutValue += timeoutValue
-        print("Rate limit exceeded: Waiting for 15 seconds.")
-        time.sleep(timeoutValue)
-        return print_trades(option_ticker, size_threshold, size_threshold_min)
+        print(f"Rate limit exceeded: Waiting for {timeOutSystem.get_sleep_time()} seconds.")
+        timeOutSystem.retry()
+        return get_large_trades(option_ticker, timeOutSystem, openInterest, size_threshold_min)
     elif response.status_code == 403:
         print("Access denied: Your API key does not have the required permissions to access this data.")
     elif response.status_code == 401:
