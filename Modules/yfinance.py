@@ -28,7 +28,7 @@ def get_symbols_from_index(indexes, extra_stocks = None):
 
         return symbols
     
-def filter_symbols_by_parameters(symbols, db, min_market_cap=1e9, min_avg_volume=200000, ycon = universal.connection_retry()):
+def filter_symbols_by_parameters(symbols, db, min_market_cap=1e9, min_avg_volume=400000, ycon = universal.connection_retry()):
     length = len(symbols)
     i = 0
     

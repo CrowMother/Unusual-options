@@ -28,6 +28,10 @@ def pullStore_data(option_chain_data, db):
 
 
 def pull_sub_data(expirations, db) :
+    #calculate range of the middle 50% of strike prices
+    open_price = get_open_price(symbol, expirationDate, db)
+    highest = get_highest_strike(symbol)
+
     for expiration in expirations.items():
         strikes = expiration[1]
         for strike in strikes.items():
@@ -42,11 +46,29 @@ def pull_sub_data(expirations, db) :
             callPut = subData['putCall']
             symbol = subData['symbol']
 
-            #if the open interest is 0 then dont add it to the database
-            if openInterest == 0:
-                continue
-            #add the data to the database
-            db.add_stock(symbol, expirationDate, strike_price, callPut, openInterest, lastPullTime)
+
+            
+            db.add_stock(symbol, expirationDate, strike_price, callPut, openInterest, lastPullTime, open_price)
+            
 
 
+def get_open_price(symbol):
+    response = client.quote(symbol)
+    if response.status_code == 200:
+        # Parse the JSON content
+        data = response.json()
+        open_price = data[f'quote']['openPrice']
+        return open_price
+    else:
+        return None
 
+
+def get_highest_strike(symbol):
+    response = client.quote(symbol)
+    if response.status_code == 200:
+        # Parse the JSON content
+        data = response.json()
+        highest_strike = data[f'quote']['highestStrike']
+        return highest_strike
+    else:
+        return None

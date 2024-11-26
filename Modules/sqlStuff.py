@@ -10,16 +10,14 @@ class sqlControlMainTable():
         self.conn = sqlite3.connect(dbFile)
         self.cursor = self.conn.cursor()
 
-        #check if the table has values in it
-        self.cursor.execute("SELECT * FROM stocks LIMIT 1")
-        if self.cursor.fetchone() is None:
-            print("Table is empty")
-            self.cursor.execute("DROP TABLE stocks")
-        else:
-            print("Table has values in it")
+        #drop all tables
+        # self.cursor.execute("DROP TABLE IF EXISTS stocks")
+        # self.cursor.execute("DROP TABLE IF EXISTS unique_stocks")
+        # self.conn.commit()
+
 
         #check if the table is over 24 hours old
-        self.check_database_age()
+        # self.check_database_age()
 
         #check if the table exists
         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='stocks'")
@@ -80,15 +78,21 @@ class sqlControlMainTable():
         
         time_diff = current_time - last_pull_time
         print("Time difference:", time_diff)
-        self.cursor.execute("DROP TABLE stocks")
         self.conn.commit()
         # Check if the time difference exceeds 12 hours (or 5 minutes for testing)
-        if time_diff > timedelta(hours=12):  # Use `minutes=5` if testing shorter timeframes
+        if time_diff > timedelta(hours=72):  # Use `minutes=5` if testing shorter timeframes
             print("Database is over 12 hours old!!!!!!!")
             # Delete the stocks table
             self.cursor.execute("DROP TABLE stocks")
             self.conn.commit()
         
+
+    def get_strikes(self,symbol, expirationDate, callPut):
+        self.cursor.execute("SELECT strike FROM stocks WHERE symbol LIKE ? AND expirationDate LIKE ? AND callPut = ?", ('%' + symbol + '%', '%' + expirationDate + '%', callPut))
+        #convert to doubles from strings
+        # return [float(row[0]) for row in self.cursor.fetchall()]
+        return [float(row[0]) for row in self.cursor.fetchall()]
+
 
 
     def add_stock(self, symbol, expirationDate, strike, callPut, openInterest, lastPullTime):
