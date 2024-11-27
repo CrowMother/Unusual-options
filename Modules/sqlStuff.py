@@ -11,9 +11,9 @@ class sqlControlMainTable():
         self.cursor = self.conn.cursor()
 
         #drop all tables
-        # self.cursor.execute("DROP TABLE IF EXISTS stocks")
-        # self.cursor.execute("DROP TABLE IF EXISTS unique_stocks")
-        # self.conn.commit()
+        self.cursor.execute("DROP TABLE IF EXISTS stocks")
+        self.cursor.execute("DROP TABLE IF EXISTS unique_stocks")
+        self.conn.commit()
 
 
         #check if the table is over 24 hours old

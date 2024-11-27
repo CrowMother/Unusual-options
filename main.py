@@ -24,34 +24,34 @@ def main():
 
 
 
-    # if db.tableCreated == True:
+    if db.tableCreated == True:
 
-    #     extra_stocks = extra_stocks.split(",")
-    #     #remove empty spaces
-    #     extra_stocks = [stock.strip() for stock in extra_stocks]
-
-
-    #     #get the list of tickers
-    #     tickers = yfinance.get_symbols_from_index(indexes, extra_stocks)
-
-    #     #filter the tickers
-    #     tickers = yfinance.filter_symbols_by_parameters(tickers, db)
+        extra_stocks = extra_stocks.split(",")
+        #remove empty spaces
+        extra_stocks = [stock.strip() for stock in extra_stocks]
 
 
-    #     tickers = db.get_all_unique_stocks()
-    #     #get the option chain data for each ticker and add it to the database
-    #     for ticker in tickers:
-    #         try:
+        #get the list of tickers
+        tickers = yfinance.get_symbols_from_index(indexes, extra_stocks)
+
+        #filter the tickers
+        tickers = yfinance.filter_symbols_by_parameters(tickers, db)
+
+
+        tickers = db.get_all_unique_stocks()
+        #get the option chain data for each ticker and add it to the database
+        for ticker in tickers:
+            try:
                 
 
 
-    #             option_chain_data = schwab.get_option_chain_data(ticker)
+                option_chain_data = schwab.get_option_chain_data(ticker)
                 
-    #             option_date = schwab.pullStore_data(option_chain_data, db)
+                option_date = schwab.pullStore_data(option_chain_data, db)
 
-    #         except Exception as e:
-    #             print(f"Failed to get option chain data for {ticker}: {e}")
-    #             continue
+            except Exception as e:
+                print(f"Failed to get option chain data for {ticker}: {e}")
+                continue
 
     #create a loop that runs the check for new data
     #while True:
@@ -99,7 +99,7 @@ def main():
                     if strikes[i] > current_price:
                         index = i
                         break
-                delta_range = (strikeLength / 2) / 2 #getting half the range then half of that again to get the middle 50%
+                delta_range = (strikeLength / 2) #getting half the range then half of that again to get the middle 50%
 
                 highest_strike = setMaximumStrike(strikeLength, strikes, index, delta_range)
                 minimum_strike = setMinimumStrike(strikeLength, strikes, index, delta_range)

@@ -29,8 +29,6 @@ def pullStore_data(option_chain_data, db):
 
 def pull_sub_data(expirations, db) :
     #calculate range of the middle 50% of strike prices
-    open_price = get_open_price(symbol, expirationDate, db)
-    highest = get_highest_strike(symbol)
 
     for expiration in expirations.items():
         strikes = expiration[1]
@@ -48,7 +46,7 @@ def pull_sub_data(expirations, db) :
 
 
             
-            db.add_stock(symbol, expirationDate, strike_price, callPut, openInterest, lastPullTime, open_price)
+            db.add_stock(symbol, expirationDate, strike_price, callPut, openInterest, lastPullTime)
             
 
 

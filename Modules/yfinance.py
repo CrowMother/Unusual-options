@@ -12,6 +12,7 @@ def get_symbols_from_index(indexes, extra_stocks = None):
         dow_tickers = si.tickers_dow()
         nasdaq_tickers = si.tickers_nasdaq()
         all_tickers = dow_tickers + nasdaq_tickers
+        # all_tickers = []
         
         #get the tickers from sp500
         #get the tickers from dow
