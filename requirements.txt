@@ -1,0 +1,7 @@
+yfinance
+requests
+flask
+python-dotenv
+pandas
+yahoo-fin
+schwabdev

@@ -1,0 +1,2 @@
+docker build -t crowmommy/unusual_options .
+docker push crowmommy/unusual_options
